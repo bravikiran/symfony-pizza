@@ -41,19 +41,31 @@ localhost:8183
 docker exec -it symfony \bin\bash
 ```
 
-7. Migrations
+7. Run cmd composer update
+
+```
+composer update
+```
+
+
+8. Migrations
 
 ```
 php bin/console doctrine:migrations:migrate
 ```
 
-8. Api Doc
+9. Api Doc
 
 ```
 Before doing CRUD operation, run Migrations. 
 http://localhost:8000/api/doc
 ```
 
+10. ETC
+
+```
+composer require laminas/laminas-zendframework-bridge
+```
 
 
 
