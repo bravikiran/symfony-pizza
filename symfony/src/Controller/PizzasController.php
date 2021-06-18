@@ -60,10 +60,10 @@ class PizzasController extends AbstractController
     }
 
     /**
-     * @Route("/api/pizza/{id}", methods={"GET"})
+     * @Route("/api/pizzas/{id}", methods={"GET"})
      *
      * @OA\Get (
-     *     path="/pizza/{id}",
+     *     path="/pizzas/{id}",
      *     summary="Gets one pizza details",
      * )
      *
@@ -72,9 +72,19 @@ class PizzasController extends AbstractController
      *     description="Returns the Pizza",
      *     @OA\JsonContent(
      *        type="array",
-     *        @OA\Items(ref=@Model(type=Pizzas::class, groups={"full"}))
+     *        @OA\Items(ref=@Model(type=Pizzas::class))
      *     )
      * )
+     *
+     * @OA\Response(
+     *     response=404,
+     *     description="Pizza Id not found",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=Pizzas::class))
+     *     )
+     * )
+     *
      *
      * @OA\Tag(name="Pizzas")
      * @Security(name="Pizzas")
@@ -86,9 +96,7 @@ class PizzasController extends AbstractController
             ->find($id);
 
         if (!$pizza) {
-            throw $this->createNotFoundException(
-                'No pizza found for id '. $id
-            );
+            return new JsonResponse(['id' => $id, 'msg' => "Id not found"], Response::HTTP_NOT_FOUND);
         }
 
         $pizzaProperties = $propertiesRepository->findBy(['pizza' => $pizza]);
@@ -112,14 +120,15 @@ class PizzasController extends AbstractController
      * @Route("/api/pizzas/create", methods={"POST"})
      *
      * @OA\Post(
-     *     path="/api/pizza",
+     *     path="/api/pizzas",
      *     summary="Adds new pizza",
      *     tags={"pizza"},
      *     summary="stored Pizza",
      *     operationId="Pizza saved",
+     *
      *     @OA\Response(
-     *         response=200,
-     *         description="successful operation",
+     *         response=201,
+     *         description="created",
      *         @OA\JsonContent(ref="#/components/schemas/Pizzas"),
      *         @OA\XmlContent(ref="#/components/schemas/Pizzas")
      *     ),
@@ -145,12 +154,11 @@ class PizzasController extends AbstractController
      *     @OA\Schema(type="number")
      * )
      *
-     *
      * * @OA\Parameter(
      *     name="propertyname",
      *     in="query",
      *     description="Add Property",
-     *     @OA\Items(type="string")
+     *     @OA\Schema(type="string")
      * )
      *
      * @OA\Tag(name="Pizzas")
@@ -185,10 +193,10 @@ class PizzasController extends AbstractController
 
 
     /**
-     * @Route("/api/pizza/{id}", methods={"PUT"})
+     * @Route("/api/pizzas/{id}", methods={"PUT"})
      *
      * @OA\Put(
-     *     path="/api/pizza/{id}",
+     *     path="/api/pizzas/{id}",
      *     summary="Updates the pizza",
      *     @OA\Parameter(
      *         description="Parameter with Id",
@@ -240,25 +248,26 @@ class PizzasController extends AbstractController
         $properties = $entityManager->getRepository(Properties::class)
             ->findOneBy(['pizza' => $pizza]);
 
-        $property = $request->get("property");
-        $properties->setProperty($property);
-
         if (!$pizza) {
-            throw $this->createNotFoundException(
-                'No pizza found' . $id
-            );
+            return new JsonResponse(['id' => $id, 'msg' => "No pizza found"], Response::HTTP_NOT_FOUND);
         }
 
         $name = $request->get("name");
-        $pizza->setName($name);
-
         $price = $request->get("price");
-        $pizza->setPrice($price);
+        $property = $request->get("property");
 
+        if (! is_null($name) ) {
+            $pizza->setName($name);
+        }
+        if (! is_null($price) ) {
+            $pizza->setName($price);
+        }
+        if (! is_null($property) ) {
+            $properties->setProperty($property);
+            $pizza->addProperty($properties);
+        }
 
-        $pizza->addProperty($properties);
-
-        // tell Doctrine you want to (eventually) save the Product (no queries yet)
+        // tell Doctrine you want to (eventually) save the Pizza (no queries yet)
         $entityManager->persist($pizza);
         $entityManager->persist($properties);
 
@@ -320,6 +329,10 @@ class PizzasController extends AbstractController
 
         $properties = $entityManager->getRepository(Properties::class)
             ->findOneBy(['pizza' => $pizza]);
+
+        if (!$pizza || !$properties) {
+            return new JsonResponse(['msg' => "could not delete"], Response::HTTP_NOT_FOUND);
+        }
 
         // Remove it and flush
         $entityManager->remove($pizza[0]);
